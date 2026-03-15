@@ -85,3 +85,5 @@ def ai_question(id: int, question: str, db: Session = Depends(db_get)):
 
     return {"answer": answer}
 
+    # content=await file.read()
+    # return {"filename ":file.filename}
