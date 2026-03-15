@@ -5,7 +5,7 @@ from database import engine,Sessionlocal,notetable
 from sqlalchemy.orm import Session
 from models import Note
 import os
-import openai
+from openai import OpenAI
 
 
 database.base.metadata.create_all(bind=engine)
@@ -38,38 +38,52 @@ async def uploadfile(file:UploadFile=File(...),db:Session=Depends(db_get)):
 
     return {"Succesfully added to database"}
 
-@app.get("/ask/{id}")
-def askquestion(id:int,question:str,db:Session=Depends(db_get)):
-    newtext=db.query(notetable).filter(notetable.id==id).first()
+# @app.get("/ask/{id}")
+# def askquestion(id:int,question:str,db:Session=Depends(db_get)):
+#     newtext=db.query(notetable).filter(notetable.id==id).first()
     
-    if question.lower() in newtext.content:
-        return{"answer may exist"}
-    return{"answer is not present"}
+#     if question.lower() in newtext.content:
+#         return{"answer may exist"}
+#     return{"answer is not present"}
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+client = OpenAI(
+    api_key=os.environ["GROQ_API_KEY"],
+    base_url="https://api.groq.com/openai/v1"
+)
 
 @app.get("/aiask/{id}")
 def ai_question(id: int, question: str, db: Session = Depends(db_get)):
+
     doc = db.query(notetable).filter(notetable.id == id).first()
     if not doc:
         return {"error": "Document not found"}
+
     content = doc.content
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-         messages=[
-            {
-                "role": "system",
-                "content": "Answer the question using this document: " + content[:3000]
-            },
-            {
-                "role": "user",
-                "content": question
-            }
+
+    prompt = f"""
+        Use the following document to answer the question.
+
+        Document:
+        {content[:1500]}
+
+        Question:
+        {question}
+        """
+
+    response = client.chat.completions.create(
+    model="llama-3.1-8b-instant",
+    messages=[
+        {"role": "system", "content": "Answer questions using the provided document."},
+        {"role": "user", "content": prompt}
         ]
-    )
-    answer = response["choices"][0]["message"]["content"]
+            )
+
+    answer = response.choices[0].message.content
+
+
     return {"answer": answer}
-    
 
     # content=await file.read()
     # return {"filename ":file.filename}
