@@ -1,6 +1,6 @@
 from fastapi import FastAPI,UploadFile,File,Depends
 from pypdf import PdfReader
-import database
+import database as database
 from database import engine,Sessionlocal,notetable
 from sqlalchemy.orm import Session
 from models import Note
