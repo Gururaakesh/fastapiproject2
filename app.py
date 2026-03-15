@@ -20,10 +20,14 @@ def db_get():
 
 
 @app.get("/get")
-def greet():
-    return "hello"
+async def greet(id:int,db:Session=Depends(db_get)):
+    doc = db.query(notetable).filter(notetable.id == id).first()
+    if not doc:
+        return "document not found"
+    content =doc.content
+    return{"Content:":content[:1000]}
 
-dt=""
+
 @app.post("/upload")
 async def uploadfile(file:UploadFile=File(...),db:Session=Depends(db_get)):
     text=""
@@ -31,8 +35,7 @@ async def uploadfile(file:UploadFile=File(...),db:Session=Depends(db_get)):
     pdf=PdfReader(file.file)
     for p in pdf.pages:
         text+=p.extract_text()
-    dt=text
-    dbtext=notetable(content=dt)
+    dbtext=notetable(content=text)
     db.add(dbtext)
     db.commit()
 
@@ -54,7 +57,7 @@ client = OpenAI(
 )
 
 @app.get("/aiask/{id}")
-def ai_question(id: int, question: str, db: Session = Depends(db_get)):
+async def ai_question(id: int, question: str, db: Session = Depends(db_get)):
 
     doc = db.query(notetable).filter(notetable.id == id).first()
     if not doc:
@@ -72,7 +75,7 @@ def ai_question(id: int, question: str, db: Session = Depends(db_get)):
         {question}
         """
 
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
     model="llama-3.1-8b-instant",
     messages=[
         {"role": "system", "content": "Answer questions using the provided document."},
