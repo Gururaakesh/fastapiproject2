@@ -31,7 +31,7 @@ async def greet(id:int,db:Session=Depends(db_get)):
 @app.post("/upload")
 async def uploadfile(file:UploadFile=File(...),db:Session=Depends(db_get)):
     text=""
-    global dt
+
     pdf=PdfReader(file.file)
     for p in pdf.pages:
         text+=p.extract_text()
@@ -56,7 +56,7 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-@app.get("/aiask/{id}")
+@app.get("/aiask/{id}/")
 async def ai_question(id: int, question: str, db: Session = Depends(db_get)):
 
     doc = db.query(notetable).filter(notetable.id == id).first()
@@ -75,7 +75,7 @@ async def ai_question(id: int, question: str, db: Session = Depends(db_get)):
         {question}
         """
 
-    response = await client.chat.completions.create(
+    response =client.chat.completions.create(
     model="llama-3.1-8b-instant",
     messages=[
         {"role": "system", "content": "Answer questions using the provided document."},
